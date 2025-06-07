@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Основной контент -->
+    <div class="col-md-8">
+        {% if current_user.is_authenticated %}
+        <div class="mb-4">
+            <a href="{{ url_for('new_post') }}" class="btn btn-primary w-100">
+                <i class="bi bi-plus-lg me-2"></i>Создать новый пост
+            </a>
+        </div>
+        {% endif %}
+
+        {% for post in posts.items %}
+        <div class="card post-card">
+            <div class="card-body">
+                <div class="post-header">
+                    <img src="{{ url_for('static', filename='avatars/' + post.author.avatar) }}"
+                         alt="{{ post.author.username }}"
+                         class="post-avatar">
+                    <div>
+                        <h5 class="mb-0">{{ post.author.username }}</h5>
+                        <small class="post-meta">
+                            {{ post.date_posted.strftime('%d.%m.%Y %H:%M') }}
+                            {% if post.category %}
+                            · <a href="{{ url_for('category_posts', slug=post.category.slug) }}" class="text-decoration-none">
+                                {{ post.category.name }}
+                            </a>
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+
+                <h2 class="post-title">
+                    <a href="{{ url_for('post', slug=post.slug) }}" class="text-decoration-none text-dark">
+                        {{ post.title }}
+                    </a>
+                </h2>
+
+                <div class="post-content">
+                    {{ post.content[:300] + '...' if post.content|length > 300 else post.content }}
+                </div>
+
+                {% if post.tags %}
+                <div class="mb-3">
+                    {% for tag in post.tags %}
+                    <a href="#" class="tag">{{ tag.name }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="post-footer">
+                    <div class="d-flex align-items-center">
+                        <button class="like-btn post-like-btn me-3 {% if current_user.is_authenticated and post in current_user.liked_posts %}liked{% endif %}"
+                                data-post-id="{{ post.id }}">
+                            <i class="bi bi-heart{% if current_user.is_authenticated and post in current_user.liked_posts %}-fill{% endif %}"></i>
+                            <span class="likes-count">{{ post.like_count }}</span>
+                        </button>
+                        <a href="{{ url_for('post', slug=post.slug) }}" class="text-decoration-none text-muted">
+                            <i class="bi bi-chat"></i>
+                            {{ post.comments.count() }}
+                        </a>
+                    </div>
+
+                    {% if post.author == current_user or current_user.is_admin %}
+                    <div>
+                        <a href="{{ url_for('update_post', slug=post.slug) }}" class="btn btn-sm btn-outline-primary me-2">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form action="{{ url_for('delete_post', slug=post.slug) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger delete-confirm">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Пагинация -->
+        {% if posts.pages > 1 %}
+        <nav aria-label="Навигация по страницам">
+            <ul class="pagination justify-content-center">
+                {% if posts.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('home', page=posts.prev_num) }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for page_num in posts.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                {% if page_num %}
+                <li class="page-item {% if page_num == posts.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('home', page=page_num) }}">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if posts.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('home', page=posts.next_num) }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+
+    <!-- Боковая панель -->
+    <div class="col-md-4">
+        <!-- Категории -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Категории</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for category in categories %}
+                    <a href="{{ url_for('category_posts', slug=category.slug) }}"
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        {{ category.name }}
+                        <span class="badge bg-primary rounded-pill">{{ category.posts.count() }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- О форуме -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">О форуме</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    Добро пожаловать на наш форум! Здесь вы можете общаться, делиться мыслями и находить
+                    единомышленников.
+                </p>
+                {% if not current_user.is_authenticated %}
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary">Зарегистрироваться</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-primary">Войти</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
